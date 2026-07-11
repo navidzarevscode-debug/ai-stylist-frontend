@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { sendMessage, ChatHistoryItem } from "@/services/chat";
@@ -37,20 +37,12 @@ interface ChatMessage {
   products?: Product[];
   time: string;
   isError?: boolean;
-  // وقتی این پاسخ یه پیشنهادِ «ست کردن با یک محصول مشخص» باشه، یا وقتی
-  // بک‌اند تشخیص بده چند محصول با هم یک ست/لوک کامل رو تشکیل می‌دن، این
-  // فیلد پر می‌شه تا بشه دکمه‌ی «ست کامل رو رو تنت ببین» رو زیرش نشون داد.
   outfitCombo?: {
     productIds: number[];
     titles: string[];
   };
 }
 
-// نگه‌دارنده‌ی «حافظه‌ی ست کردن»: محصول اصلی‌ای که کاربر انتخاب کرده و
-// آیتم‌هایی که تا الان به‌عنوان مکمل آن پیشنهاد داده شده‌اند. این باعث
-// می‌شه وقتی کاربر توی ادامه‌ی مکالمه می‌گه «یه لباس دکمه هم بگو» یا
-// «شلوارش رو هم بگو»، هوش مصنوعی بدونه داره درباره‌ی چه محصولی صحبت
-// می‌کنه و چیزی که قبلاً پیشنهاد داده رو تکرار نکنه.
 interface OutfitContextData {
   product: FullProductDetails;
   suggested: { id: number; name: string }[];
@@ -119,9 +111,6 @@ function buildProfileBlock(profile: StyleQuizAnswers): string {
   return `\n\n[اطلاعات مشتری]\n${lines.join("\n")}`;
 }
 
-// خلاصه‌ی متنی کوتاه از پروفایل فعلی، برای اینکه مدل تشخیص (detect-style)
-// بفهمه قبلاً چه اطلاعاتی از کاربر گرفته شده و بتونه «تغییر مشخصات» یا
-// «تغییر مناسبت» رو نسبت به این خلاصه تشخیص بده.
 function buildProfileSummary(profile: StyleQuizAnswers): string {
   const parts: string[] = [];
   if (profile.gender) parts.push(`جنسیت: ${GENDER_LABELS[profile.gender] ?? profile.gender}`);
@@ -149,9 +138,6 @@ function buildProductDetailsBlock(product: FullProductDetails): string {
   return `\n\n[مشخصات دقیق محصول انتخاب‌شده]\n${lines.join("\n")}`;
 }
 
-// این بلاک به هر پیامی که بعد از اولین درخواست «ست کردن» ارسال می‌شه
-// اضافه می‌شه تا AI بدونه داره ادامه‌ی همون درخواست رو جواب می‌ده، محصول
-// اصلی چیه، و کدوم آیتم‌ها قبلاً پیشنهاد شده تا دوباره تکرارشون نکنه.
 function buildOutfitContextBlock(context: OutfitContextData): string {
   const lines: string[] = [];
   const p = context.product;
@@ -172,13 +158,7 @@ function buildOutfitContextBlock(context: OutfitContextData): string {
 interface StyleDetectionResult {
   isStyleRequest: boolean;
   profile: Partial<StyleQuizAnswers>;
-  // فقط وقتی زمینه‌ی ست فعالی وجود داشته باشه معنی داره: true یعنی مدل
-  // تشخیص داده کاربر مشخصات/مناسبت رو عوض کرده یا موضوع بی‌ربطه، پس
-  // حافظه‌ی ست کردن باید ریست بشه.
   resetOutfitContext: boolean;
-  // مستقل از resetOutfitContext: true فقط وقتی کاربر صراحتاً خواسته
-  // پروفایل کلی (نظرسنجی) کنار گذاشته بشه و از نو پرسیده بشه (مثلاً
-  // «برای یه نفر دیگه می‌خوام»، «مشخصاتم عوض شده»).
   wantsNewProfile: boolean;
 }
 
@@ -200,9 +180,6 @@ async function detectStyleRequest(
     return {
       isStyleRequest: !!data.isStyleRequest,
       profile: data.profile ?? {},
-      // پیش‌فرض امن جدید: اگه چیزی نامشخص یا خطا بود، false (یعنی ادامه‌ی
-      // گفتگو) در نظر بگیر، چون تجربه نشون داده باز شدن مکرر نظرسنجی
-      // آزاردهنده‌تر از نگه‌داشتن اشتباهیِ context‌ـه.
       resetOutfitContext: data.resetOutfitContext === true,
       wantsNewProfile: !!data.wantsNewProfile,
     };
@@ -322,7 +299,7 @@ function ProductTile({
   );
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const { theme, toggleTheme } = useTheme();
   const dark = theme === "dark";
   const searchParams = useSearchParams();
@@ -346,27 +323,15 @@ export default function ChatPage() {
   const pendingExcludeProductIdRef = useRef<number | null>(null);
   const styleProductTriggeredRef = useRef(false);
 
-  // حافظه‌ی «ست کردن»: تا وقتی این مقدار پر باشه، هر پیام بعدی (از جمله
-  // پیام‌های عادی کاربر مثل «یه لباس دکمه هم بگو») همراه با زمینه‌ی محصول
-  // اصلی و آیتم‌های قبلاً پیشنهادشده به AI فرستاده می‌شه.
   const outfitContextRef = useRef<OutfitContextData | null>(null);
 
-  // حافظه‌ی کلی مکالمه: هر پیام کاربر و پاسخ AI (همراه با اسم محصولاتی که
-  // پیشنهاد داده) اینجا نگه داشته می‌شه تا در درخواست‌های بعدی به AI
-  // فرستاده بشه. این باعث می‌شه AI بتونه به چیزهایی که قبلاً گفته یا
-  // پیشنهاد داده ارجاع بده، مثلاً وقتی کاربر می‌گه «به‌جای اون شلوار یکی
-  // دیگه بگو» یا «همون قبلی رو دوباره بگو».
   const historyRef = useRef<ChatHistoryItem[]>([]);
-  const MAX_HISTORY_ITEMS = 20; // یعنی حدود ۱۰ رفت‌وبرگشت آخر مکالمه
+  const MAX_HISTORY_ITEMS = 20;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
 
-  // وقتی از دکمه‌ی «ست کردن لباس بر اساس سلایقتون» با productId وارد چت می‌شیم،
-  // یه‌بار (فقط یه‌بار) نظرسنجی رو به‌صورت خودکار باز کن تا بعد از تکمیلش
-  // AI بر اساس مشخصات کاربر، یه ست مناسب (مثلاً شلوار یا لباس مکمل) برای
-  // همون محصول پیشنهاد بده.
   useEffect(() => {
     if (!styleProductId || styleProductTriggeredRef.current) return;
     styleProductTriggeredRef.current = true;
@@ -386,7 +351,6 @@ export default function ChatPage() {
         console.error("دریافت اطلاعات محصول برای ست کردن با خطا مواجه شد:", error);
       }
 
-      // شروع حافظه‌ی ست کردن برای این محصول؛ هنوز هیچ آیتمی پیشنهاد نشده
       if (fetchedProduct) {
         outfitContextRef.current = { product: fetchedProduct, suggested: [] };
       }
@@ -425,9 +389,6 @@ export default function ChatPage() {
     inputRef.current?.focus();
 
     const profileBlock = buildProfileBlock(profile);
-    // اگه محصولی برای «ست کردن» فعال باشه، زمینه‌ی اون رو (محصول اصلی +
-    // آیتم‌های قبلاً پیشنهادشده) به پیام اضافه می‌کنیم تا AI ادامه‌ی
-    // درخواست رو درست بفهمه و چیزی رو تکرار نکنه.
     const outfitBlock = outfitContextRef.current
       ? buildOutfitContextBlock(outfitContextRef.current)
       : "";
@@ -435,17 +396,11 @@ export default function ChatPage() {
 
     const isOutfitFlow = excludeProductId != null || outfitContextRef.current != null;
 
-    // تاریخچه‌ی مکالمه تا همین لحظه (قبل از این پیام جدید) رو می‌فرستیم
-    // تا AI بتونه به گفتگوی قبلی ارجاع بده.
     const historyForApi = historyRef.current.slice(-MAX_HISTORY_ITEMS);
 
     try {
       const result = await sendMessage(1, finalText, historyForApi);
 
-      // لایه‌ی امنِ دوم سمت فرانت: هرگز محصول اصلی یا آیتم‌هایی که قبلاً
-      // برای همین محصول پیشنهاد شده رو دوباره نشون نده، و چون این نوع
-      // درخواست «ست کردن با یک محصول مشخص»‌ه، فقط اولین (بهترین) پیشنهاد
-      // نمایش داده می‌شه.
       const excludeIds = new Set<number>();
       if (excludeProductId != null) excludeIds.add(excludeProductId);
       if (outfitContextRef.current) {
@@ -461,16 +416,12 @@ export default function ChatPage() {
         filteredProducts = filteredProducts?.slice(0, 1);
       }
 
-      // آیتم(های) تازه پیشنهادشده رو به حافظه‌ی ست کردن اضافه کن تا دفعه‌ی
-      // بعد دوباره پیشنهاد نشن.
       if (outfitContextRef.current && filteredProducts && filteredProducts.length > 0) {
         outfitContextRef.current.suggested.push(
           ...filteredProducts.map((p) => ({ id: p.id, name: p.title }))
         );
       }
 
-      // این پیام و پاسخش رو به حافظه‌ی کلی مکالمه اضافه می‌کنیم تا در
-      // درخواست بعدی به AI فرستاده بشه.
       const productNamesForHistory = filteredProducts?.map((p) => p.title).join("، ");
       historyRef.current.push({ role: "user", content: finalText });
       historyRef.current.push({
@@ -485,18 +436,6 @@ export default function ChatPage() {
         historyRef.current = historyRef.current.slice(-MAX_HISTORY_ITEMS);
       }
 
-      // دکمه‌ی «ست کامل رو رو تنت ببین» رو در دو حالت فعال می‌کنیم:
-      //
-      // ۱) حالت «ست کردن با محصول مشخص» (از صفحه‌ی محصول یا ادامه‌ی
-      //    مکالمه‌ی مربوط به آن): وقتی outfitContextRef پر است و دقیقاً
-      //    یک آیتم مکمل برگشته، آن آیتم را با محصول اصلی ترکیب می‌کنیم.
-      //    این منطق دست‌نخورده مانده.
-      //
-      // ۲) حالت چت عمومی (بدون آمدن از صفحه‌ی محصول): اینجا فقط وقتی
-      //    بک‌اند صریحاً با فیلد isOutfitSet اعلام کرده که محصولات
-      //    برگشتی با هم یک ست/لوک کامل را تشکیل می‌دهند، همه‌ی آن
-      //    محصولات را به‌عنوان یک outfitCombo در نظر می‌گیریم. هیچ حدسی
-      //    بر اساس تعداد محصولات به‌تنهایی زده نمی‌شود.
       let outfitCombo: ChatMessage["outfitCombo"] = undefined;
       if (
         outfitContextRef.current &&
@@ -588,39 +527,22 @@ export default function ChatPage() {
         : undefined
     );
 
-    // زمینه‌ی ست فعاله و مدل تشخیص داده این پیام ادامه‌ی طبیعیه (نه تغییر
-    // مشخصات و نه یه موضوع بی‌ربط) -> مستقیم با پروفایل و context فعلی
-    // بفرست، بدون باز کردن دوباره‌ی نظرسنجی.
     if (hasOutfitContext && !resetOutfitContext) {
       await performSend(text, styleProfile);
       return;
     }
 
-    // یا زمینه‌ای وجود نداشته، یا کاربر صراحتاً گفته مشخصات/مناسبت عوض
-    // شده، یا موضوع بی‌ربطه -> حافظه‌ی ست کردن رو ریست کن و بذار مسیر
-    // عادی (تشخیص isStyleRequest) طی بشه.
     if (hasOutfitContext && resetOutfitContext) {
       outfitContextRef.current = null;
     }
 
-    // اگه پیام اصلاً درخواست استایل/لباس/ست نبود (مثلاً «سلام» یا هر
-    // پیام عادی دیگه)، هیچ‌کدوم از منطق پروفایل/نظرسنجی اجرا نمی‌شه و
-    // نظرسنجی هرگز باز نمی‌شه.
     if (!isStyleRequest) {
       await performSend(text, styleProfile);
       return;
     }
 
-    // اگه کاربر صراحتاً خواسته پروفایل قبلی کنار گذاشته بشه (مثلاً «برای
-    // یه نفر دیگه می‌خوام» یا «مشخصاتم عوض شده»)، پروفایل خالی در نظر
-    // می‌گیریم تا نظرسنجی از نو (فقط برای فیلدهای هنوز نامشخص) باز بشه.
     const baseProfile: StyleQuizAnswers = wantsNewProfile ? {} : styleProfile;
 
-    // همه‌ی فیلدها (جنسیت، رنگ پوست، قد، وزن، مناسبت) پایدارن: اگه این
-    // پیام چیزی جدید درباره‌شون نگفته باشه، از پروفایل قبلی (یا پروفایل
-    // خالی در صورت درخواست صریح ریست) استفاده می‌کنیم. برای بار اول (که
-    // پروفایلی وجود نداره)، همه‌ی فیلدها خالی می‌مونن و نظرسنجی کامل باز
-    // می‌شه؛ برای دفعات بعد، فقط فیلدهای واقعاً نامشخص پرسیده می‌شن.
     const known: StyleQuizAnswers = {};
     const gender = extracted.gender ?? baseProfile.gender;
     if (gender) known.gender = gender;
@@ -638,8 +560,6 @@ export default function ChatPage() {
     const missing = REQUIRED_FIELDS.filter((f) => !(f in known));
 
     if (missing.length > 0) {
-      // فقط سوالاتی که هنوز جواب ندارن پرسیده می‌شن (StyleQuizModal خودش
-      // بر اساس initialAnswers این فیلتر رو انجام می‌ده).
       setLoading(false);
       pendingTextRef.current = text;
       setQuizInitialAnswers(known);
@@ -899,5 +819,13 @@ export default function ChatPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChatPageContent />
+    </Suspense>
   );
 }
