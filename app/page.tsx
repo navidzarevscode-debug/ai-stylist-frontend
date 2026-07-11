@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Categories from "@/components/home/Categories";
 import ProductGrid from "@/components/home/ProductGrid";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/home/ProductCard";
@@ -25,7 +25,7 @@ type ApiProduct = {
   images: ProductImage[];
 };
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category") ?? undefined;
   const occasion = searchParams.get("occasion") ?? undefined;
@@ -105,5 +105,13 @@ export default function ProductsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProductsPageContent />
+    </Suspense>
   );
 }
