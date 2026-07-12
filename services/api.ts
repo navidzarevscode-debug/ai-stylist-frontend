@@ -1,4 +1,4 @@
-export const API_URL = "http://127.0.0.1:8000";
+export const API_URL = "https://app-python-7nqup.apps.de1.abrhapaas.com";
 
 export async function getProducts(filters?: { category?: string; occasion?: string }) {
   const params = new URLSearchParams();

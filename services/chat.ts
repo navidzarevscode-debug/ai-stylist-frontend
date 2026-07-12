@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000/chat/";
+const API_URL = "https://app-python-7nqup.apps.de1.abrhapaas.com/chat/";
 
 interface BackendProduct {
   id: number;
@@ -23,10 +23,6 @@ interface ChatResult {
     price: number;
     image_url?: string;
   }[];
-  // وقتی بک‌اند تشخیص بده که محصولات برگردانده‌شده با هم یک ست/لوک کامل
-  // را تشکیل می‌دهند (نه چند گزینه‌ی جدا از هم)، این فیلد true می‌شود.
-  // این مقدار مستقیماً از data.is_outfit_set پر می‌شود و هیچ حدسی روی
-  // آن (مثلاً بر اساس تعداد محصولات) در فرانت انجام نمی‌شود.
   isOutfitSet?: boolean;
 }
 

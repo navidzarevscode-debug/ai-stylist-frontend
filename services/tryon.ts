@@ -1,5 +1,5 @@
-const API_URL = "http://127.0.0.1:8000/tryon/";
-const OUTFIT_API_URL = "http://127.0.0.1:8000/tryon/outfit";
+const API_URL = "https://app-python-7nqup.apps.de1.abrhapaas.com/tryon/";
+const OUTFIT_API_URL = "https://app-python-7nqup.apps.de1.abrhapaas.com/tryon/outfit";
 
 export async function tryOnProduct(productId: number, personImage: File): Promise<string> {
   const formData = new FormData();
@@ -19,8 +19,6 @@ export async function tryOnProduct(productId: number, personImage: File): Promis
   return data.result_image_url as string;
 }
 
-// هر دو محصولِ ست‌شده (مثلاً بالاتنه + پایین‌تنه) رو هم‌زمان روی عکس کاربر
-// پیاده می‌کنه، به‌جای اینکه دوبار جدا-جدا صداش کنیم.
 export async function tryOnOutfit(
   productIds: number[],
   personImage: File
