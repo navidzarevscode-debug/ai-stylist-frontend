@@ -7,7 +7,7 @@ export async function getProducts(filters?: { category?: string; occasion?: stri
   if (filters?.occasion) params.set("occasion", filters.occasion);
 
   const query = params.toString();
-  const url = query ? `${API_URL}/products?${query}` : `${API_URL}/products`;
+  const url = query ? `/api/products?${query}` : `/api/products`;
 
   const response = await fetch(url, { cache: "no-store" });
 
@@ -19,7 +19,7 @@ export async function getProducts(filters?: { category?: string; occasion?: stri
 }
 
 export async function getProduct(id: string | number) {
-  const response = await fetch(`${API_URL}/products/${id}`, { cache: "no-store" });
+  const response = await fetch(`/api/products/${id}`, { cache: "no-store" });
 
   if (!response.ok) {
     if (response.status === 404) return null;
