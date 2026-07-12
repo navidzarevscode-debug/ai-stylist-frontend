@@ -6,7 +6,7 @@ import AIAssistantBubble from "@/components/AIAssistantBubble";
 import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
-  title: "AI Stylist | فروشگاه هوشمند مد",
+  title: "Jest Agent | فروشگاه هوشمند مد",
   description: "فروشگاه آنلاین لباس با پیشنهاد استایل توسط هوش مصنوعی",
 };
 

@@ -51,7 +51,7 @@ export default function Navbar() {
           >
             <Image
               src="/logo.png"
-              alt="AI Stylist"
+              alt="Jest Agent"
               fill
               className="object-cover scale-150"
             />
@@ -61,7 +61,7 @@ export default function Navbar() {
               dark ? "text-white" : "text-neutral-900"
             }`}
           >
-            AI Stylist
+            Jest Agent
           </span>
         </Link>
 

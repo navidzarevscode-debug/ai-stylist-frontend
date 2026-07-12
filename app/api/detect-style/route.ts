@@ -38,7 +38,7 @@ ${previousProfileSummary || "(اطلاعاتی ثبت نشده)"}
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "application/json",
         "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "AI Stylist",
+        "X-Title": "Jest Agent",
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",

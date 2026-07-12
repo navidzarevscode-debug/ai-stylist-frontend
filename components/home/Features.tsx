@@ -22,7 +22,7 @@ export default function Features() {
       <div className="mx-auto max-w-6xl px-6">
 
         <h2 className="mb-12 text-center text-4xl font-bold">
-          چرا AI Stylist؟
+          چرا Jest Agent؟
         </h2>
 
         <div className="grid gap-8 md:grid-cols-3">
