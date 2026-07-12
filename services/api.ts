@@ -1,4 +1,4 @@
-export const API_URL = "https://app-python-pw0pg.apps.de1.abrhapaas.com";
+export const API_URL = "https://app-python-qjgv3.apps.de1.abrhapaas.com";
 
 export async function getProducts(filters?: { category?: string; occasion?: string }) {
   const params = new URLSearchParams();

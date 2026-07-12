@@ -1,5 +1,5 @@
-const API_URL = "https://app-python-pw0pg.apps.de1.abrhapaas.com/tryon/";
-const OUTFIT_API_URL = "https://app-python-pw0pg.apps.de1.abrhapaas.com/tryon/outfit";
+const API_URL = "https://app-python-qjgv3.apps.de1.abrhapaas.com/tryon/";
+const OUTFIT_API_URL = "https://app-python-qjgv3.apps.de1.abrhapaas.com/tryon/outfit";
 
 export async function tryOnProduct(productId: number, personImage: File): Promise<string> {
   const formData = new FormData();
