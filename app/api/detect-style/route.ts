@@ -1,9 +1,4 @@
 import { NextResponse } from "next/server";
-import { ProxyAgent, setGlobalDispatcher } from "undici";
-
-// v2rayN proxy port. Change this if you change the local port in v2rayN settings.
-const PROXY_URL = "http://127.0.0.1:10808";
-setGlobalDispatcher(new ProxyAgent(PROXY_URL));
 
 export async function POST(req: Request) {
   try {
@@ -116,10 +111,7 @@ ${previousProfileSummary || "(اطلاعاتی ثبت نشده)"}
     return NextResponse.json({
       isStyleRequest: !!parsed.isStyleRequest,
       profile,
-      // اگر زمینه‌ی فعالی وجود نداشته، این مقدار بی‌اهمیته و true فرض می‌شه
-      // تا مسیر عادی (بررسی isStyleRequest) طی بشه.
       resetOutfitContext: hasActiveOutfit ? !!parsed.resetOutfitContext : true,
-      // پیش‌فرض false: فقط با نشونه‌ی صریح مدل این رو true می‌کنه.
       wantsNewProfile: !!parsed.wantsNewProfile,
     });
   } catch (error) {
