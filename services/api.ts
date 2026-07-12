@@ -1,5 +1,16 @@
 export const API_URL = "https://app-python-qjgv3.apps.de1.abrhapaas.com";
 
+const isServer = typeof window === "undefined";
+
+function buildInternalUrl(path: string) {
+  if (isServer) {
+    // روی سرور، آدرس نسبی معنی نداره، پس مستقیم به بک‌اند وصل می‌شیم
+    return `${API_URL}${path}`;
+  }
+  // توی مرورگر، از مسیر داخلی (پروکسی) استفاده می‌کنیم
+  return `/api${path}`;
+}
+
 export async function getProducts(filters?: { category?: string; occasion?: string }) {
   const params = new URLSearchParams();
 
@@ -7,7 +18,7 @@ export async function getProducts(filters?: { category?: string; occasion?: stri
   if (filters?.occasion) params.set("occasion", filters.occasion);
 
   const query = params.toString();
-  const url = query ? `/api/products?${query}` : `/api/products`;
+  const url = query ? `${buildInternalUrl("/products")}?${query}` : buildInternalUrl("/products");
 
   const response = await fetch(url, { cache: "no-store" });
 
@@ -19,7 +30,8 @@ export async function getProducts(filters?: { category?: string; occasion?: stri
 }
 
 export async function getProduct(id: string | number) {
-  const response = await fetch(`/api/products/${id}`, { cache: "no-store" });
+  const url = buildInternalUrl(`/products/${id}`);
+  const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
     if (response.status === 404) return null;
