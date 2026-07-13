@@ -16,6 +16,7 @@ export default function TryOnModal({ productId, productTitle, onClose }: TryOnMo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -40,6 +41,29 @@ export default function TryOnModal({ productId, productTitle, onClose }: TryOnMo
     }
 
     setLoading(false);
+  }
+
+  async function handleDownload() {
+    if (!resultUrl) return;
+    setDownloading(true);
+
+    try {
+      const response = await fetch(resultUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = "tryon-result.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error(err);
+    }
+
+    setDownloading(false);
   }
 
   return (
@@ -122,14 +146,14 @@ export default function TryOnModal({ productId, productTitle, onClose }: TryOnMo
               </div>
 
               <div className="flex gap-2">
-                <a
-                  href={resultUrl}
-                  download
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-700 py-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition"
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-700 py-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition disabled:opacity-50"
                 >
                   <Download size={15} />
-                  دانلود
-                </a>
+                  {downloading ? "در حال آماده‌سازی..." : "دانلود"}
+                </button>
                 <button
                   onClick={() => {
                     setResultUrl(null);
