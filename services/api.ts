@@ -3,12 +3,7 @@ export const API_URL = "https://app-python-f3b4n.apps.teh11.abrhapaas.com";
 const isServer = typeof window === "undefined";
 
 function buildInternalUrl(path: string) {
-  if (isServer) {
-    // روی سرور، آدرس نسبی معنی نداره، پس مستقیم به بک‌اند وصل می‌شیم
-    return `${API_URL}${path}`;
-  }
-  // توی مرورگر، از مسیر داخلی (پروکسی) استفاده می‌کنیم
-  return `/api${path}`;
+  return `${API_URL}${path}`;
 }
 
 export async function getProducts(filters?: { category?: string; occasion?: string }) {
