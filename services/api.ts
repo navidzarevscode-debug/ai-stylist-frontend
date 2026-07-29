@@ -13,7 +13,7 @@ export async function getProducts(filters?: { category?: string; occasion?: stri
   if (filters?.occasion) params.set("occasion", filters.occasion);
 
   const query = params.toString();
-  const url = query ? `${buildInternalUrl("/products")}?${query}` : buildInternalUrl("/products");
+  const url = query ? `${buildInternalUrl("/products/")}?${query}` : buildInternalUrl("/products/");
 
   const response = await fetch(url, { cache: "no-store" });
 
