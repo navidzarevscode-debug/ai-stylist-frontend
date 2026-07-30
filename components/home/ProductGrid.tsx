@@ -175,7 +175,7 @@ export default async function ProductGrid() {
         products={bestsellerProducts}
         dark={false}
         layout="grid"
-        href="/products/"
+        href="/products"
       />
     </div>
   );

@@ -17,7 +17,7 @@ export default function CartPage() {
           سبد خرید شما خالیه
         </p>
         <Link
-          href="/products/"
+          href="/products"
           className="px-5 py-2.5 rounded-xl bg-neutral-900 text-white text-sm font-semibold dark:bg-white dark:text-neutral-900"
         >
           مشاهده‌ی محصولات
