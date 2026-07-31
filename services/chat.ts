@@ -1,4 +1,4 @@
-const API_URL = "https://app-python-xvxv0.apps.frk1.abrhpaas.com/chat/";
+const API_URL = "https://app-python-xvxv0.apps.frk1.abrhapaas.com/chat/";
 
 interface BackendProduct {
   id: number;

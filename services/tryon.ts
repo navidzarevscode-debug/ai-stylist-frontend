@@ -1,4 +1,4 @@
-const BASE_URL = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
+const BASE_URL = "https://app-python-xvxv0.apps.frk1.abrhapaas.com";
 const API_URL = `${BASE_URL}/tryon/`;
 const OUTFIT_API_URL = `${BASE_URL}/tryon/outfit`;
 

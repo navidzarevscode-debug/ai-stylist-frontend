@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
+const API_URL = "https://app-python-xvxv0.apps.frk1.abrhapaas.com";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

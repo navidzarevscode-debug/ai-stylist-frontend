@@ -1,4 +1,4 @@
-const API_BASE = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
+const API_BASE = "https://app-python-xvxv0.apps.frk1.abrhapaas.com";
 export type AuthApiResponse = {
   access_token: string;
   token_type: string;

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { getUser, subscribeToAuthChanges } from "@/lib/auth";
 
-const API_BASE = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
+const API_BASE = "https://app-python-xvxv0.apps.frk1.abrhapaas.com";
 export interface CartProduct {
   id: number;
   name: string;

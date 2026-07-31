@@ -1,4 +1,4 @@
-export const API_URL = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
+export const API_URL = "https://app-python-xvxv0.apps.frk1.abrhapaas.com";
 
 const isServer = typeof window === "undefined";
 
