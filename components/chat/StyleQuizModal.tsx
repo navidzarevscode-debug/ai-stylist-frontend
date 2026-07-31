@@ -26,7 +26,7 @@ const STEPS: Step[] = [
     options: [
       { value: "male", label: "مرد" },
       { value: "female", label: "زن" },
-      { value: "unspecified", label: "ترجیح می‌دهم نگویم" },
+     
     ],
   },
   {
