@@ -3,7 +3,7 @@
 import { getToken } from "@/lib/auth";
 import { getImageUrl } from "@/services/api";
 
-const API_BASE = "https://app-python-f3b4n.apps.teh11.abrhapaas.com";
+const API_BASE = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
 const EVENT_NAME = "favoritesChanged";
 
 export type FavoriteProduct = {

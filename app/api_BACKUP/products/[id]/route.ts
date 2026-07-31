@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = "https://app-python-f3b4n.apps.teh11.abrhapaas.com";
+const API_URL = "https://app-python-xvxv0.apps.frk1.abrhpaas.com";
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
