@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { RotateCcw, Sparkles } from "lucide-react";
 import { sendMessage, ChatHistoryItem } from "@/services/chat";
 import { getProduct } from "@/services/api";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -196,6 +197,48 @@ function now() {
   });
 }
 
+// ---------- نگه‌داری گفتگو هنگام جابه‌جایی بین صفحات ----------
+// گفتگو توی sessionStorage ذخیره می‌شه تا وقتی کاربر مثلاً بره صفحه‌ی
+// محصولات و برگرده، چت پاک نشه. با بستن کامل تب/مرورگر پاک می‌شه.
+
+const CHAT_STORAGE_KEY = "ai_style_chat_state_v1";
+
+interface PersistedChatState {
+  messages: ChatMessage[];
+  styleProfile: StyleQuizAnswers;
+  outfitContext: OutfitContextData | null;
+  history: ChatHistoryItem[];
+}
+
+function loadPersistedChat(): PersistedChatState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PersistedChatState;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedChat(state: PersistedChatState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // فضای ذخیره‌سازی پر بوده یا داده قابل serialize نبوده - مشکلی نیست
+  }
+}
+
+function clearPersistedChat() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(CHAT_STORAGE_KEY);
+  } catch {
+    // نادیده می‌گیریم
+  }
+}
+
 function AssistantAvatar({ dark }: { dark: boolean }) {
   return (
     <div
@@ -287,13 +330,10 @@ function ProductTile({
 
       <button
         onClick={() => onTryOn(product)}
-        className={`text-[10px] font-semibold rounded-full px-2 py-1 transition ${
-          dark
-            ? "bg-neutral-800 text-neutral-200 hover:bg-neutral-700"
-            : "bg-neutral-900 text-white hover:bg-neutral-800"
-        }`}
+        className="flex items-center gap-1 text-[10px] font-bold rounded-full px-2.5 py-1.5 text-white bg-gradient-to-l from-purple-600 to-fuchsia-500 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
       >
-       میخوای ببینی رو تنت چجوریه ؟ کلیک کن✨
+        <Sparkles size={11} className="shrink-0" />
+        رو خودت امتحان کن
       </button>
     </div>
   );
@@ -305,7 +345,12 @@ function ChatPageContent() {
   const searchParams = useSearchParams();
   const styleProductId = searchParams.get("productId");
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // فقط یک بار موقع اولین رندر، گفتگوی ذخیره‌شده‌ی قبلی (اگه بود) رو می‌خونیم
+  const persistedRef = useRef<PersistedChatState | null>(loadPersistedChat());
+
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => persistedRef.current?.messages ?? []
+  );
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [tryOnProduct, setTryOnProduct] = useState<Product | null>(null);
@@ -316,21 +361,57 @@ function ChatPageContent() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [styleProfile, setStyleProfile] = useState<StyleQuizAnswers>({});
+  const [styleProfile, setStyleProfile] = useState<StyleQuizAnswers>(
+    () => persistedRef.current?.styleProfile ?? {}
+  );
   const [quizOpen, setQuizOpen] = useState(false);
   const [quizInitialAnswers, setQuizInitialAnswers] = useState<Partial<StyleQuizAnswers>>({});
   const pendingTextRef = useRef<string | null>(null);
   const pendingExcludeProductIdRef = useRef<number | null>(null);
   const styleProductTriggeredRef = useRef(false);
 
-  const outfitContextRef = useRef<OutfitContextData | null>(null);
+  const outfitContextRef = useRef<OutfitContextData | null>(
+    persistedRef.current?.outfitContext ?? null
+  );
 
-  const historyRef = useRef<ChatHistoryItem[]>([]);
+  const historyRef = useRef<ChatHistoryItem[]>(persistedRef.current?.history ?? []);
   const MAX_HISTORY_ITEMS = 20;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
+
+  // هر بار پیام‌ها یا پروفایل سلیقه‌ی کاربر تغییر کرد، گفتگو رو ذخیره می‌کنیم
+  useEffect(() => {
+    if (messages.length === 0) return;
+    savePersistedChat({
+      messages,
+      styleProfile,
+      outfitContext: outfitContextRef.current,
+      history: historyRef.current,
+    });
+  }, [messages, styleProfile]);
+
+  function handleResetChat() {
+    const confirmed = window.confirm(
+      "مطمئنی می‌خوای گفتگو رو از اول شروع کنی؟ همه‌ی پیام‌های فعلی پاک می‌شن."
+    );
+    if (!confirmed) return;
+
+    setMessages([]);
+    setMessage("");
+    setLoading(false);
+    setTryOnProduct(null);
+    setOutfitTryOn(null);
+    setStyleProfile({});
+    setQuizOpen(false);
+    setQuizInitialAnswers({});
+    pendingTextRef.current = null;
+    pendingExcludeProductIdRef.current = null;
+    outfitContextRef.current = null;
+    historyRef.current = [];
+    clearPersistedChat();
+  }
 
   useEffect(() => {
     if (!styleProductId || styleProductTriggeredRef.current) return;
@@ -605,37 +686,76 @@ function ChatPageContent() {
     <div className={`min-h-screen w-full transition-colors ${dark ? "bg-neutral-950" : "bg-[#FAFAF8]"}`}>
       {/* Header */}
       <div
-        className={`sticky top-0 z-10 border-b px-4 py-4 backdrop-blur transition-colors sm:px-8 ${
+        className={`sticky top-0 z-10 border-b px-3 py-3 backdrop-blur transition-colors sm:px-8 sm:py-4 ${
           dark ? "border-neutral-800 bg-neutral-950/90" : "border-neutral-100 bg-[#FAFAF8]/90"
         }`}
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${dark ? "bg-white" : "bg-neutral-900"}`}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill={dark ? "#111111" : "#F2A93B"}>
-                <path d="M12 2l2.2 6.2L20.5 10l-6.3 1.8L12 18l-2.2-6.2L3.5 10l6.3-1.8L12 2z" />
-              </svg>
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <div className="relative shrink-0">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm sm:h-10 sm:w-10 ${
+                  dark ? "bg-white" : "bg-neutral-900"
+                }`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill={dark ? "#111111" : "#F2A93B"}>
+                  <path d="M12 2l2.2 6.2L20.5 10l-6.3 1.8L12 18l-2.2-6.2L3.5 10l6.3-1.8L12 2z" />
+                </svg>
+              </div>
+              <span
+                className={`absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ${
+                  dark ? "ring-neutral-950" : "ring-[#FAFAF8]"
+                }`}
+              />
             </div>
-            <div>
-              <h1 className={`text-base font-bold sm:text-lg ${dark ? "text-white" : "text-neutral-900"}`}>
-                چت با هوش استایلیست ✨
+            <div className="min-w-0">
+              <h1
+                className={`truncate text-sm font-bold sm:text-lg ${
+                  dark ? "text-white" : "text-neutral-900"
+                }`}
+              >
+                دستیار استایلیست هوش مصنوعی ✨
               </h1>
-              <p className={`text-xs ${dark ? "text-neutral-400" : "text-neutral-500"}`}>
-                هر سوالی درباره استایل، لباس، ست کردن و مد داری بپرس.
+              <p
+                className={`truncate text-[11px] sm:text-xs ${
+                  dark ? "text-neutral-400" : "text-neutral-500"
+                }`}
+              >
+                هر سوالی درباره استایل، لباس و ست کردن داری بپرس
               </p>
             </div>
           </div>
+
+          {messages.length > 0 && (
+            <button
+              onClick={handleResetChat}
+              aria-label="شروع گفتگوی جدید"
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition sm:px-3.5 sm:py-2 sm:text-xs ${
+                dark
+                  ? "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+                  : "border-neutral-200 text-neutral-600 hover:bg-neutral-100"
+              }`}
+            >
+              <RotateCcw size={13} />
+              <span className="hidden sm:inline">شروع دوباره</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Messages */}
       <div className="mx-auto max-w-3xl px-4 pb-40 pt-6 sm:px-8">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center gap-5 py-16 text-center">
-            <AssistantAvatar dark={dark} />
+          <div className="flex flex-col items-center gap-4 py-12 text-center sm:py-16">
+            <div className="relative">
+              <div className="absolute inset-0 -m-3 rounded-full bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 blur-xl" />
+              <AssistantAvatar dark={dark} />
+            </div>
             <div>
-              <p className={`text-sm font-semibold ${dark ? "text-white" : "text-neutral-900"}`}>سلام 👋</p>
-              <p className={`mt-1 max-w-xs text-sm ${dark ? "text-neutral-400" : "text-neutral-500"}`}>
+              <p className={`text-sm font-bold sm:text-base ${dark ? "text-white" : "text-neutral-900"}`}>
+                سلام 👋 من دستیار استایل تو هستم
+              </p>
+              <p className={`mt-1.5 max-w-xs text-xs sm:text-sm ${dark ? "text-neutral-400" : "text-neutral-500"}`}>
                 بگو دنبال چه استایلی هستی تا بهترین گزینه‌ها رو برات پیدا کنم.
               </p>
             </div>
@@ -681,13 +801,10 @@ function ChatPageContent() {
                   {m.outfitCombo && (
                     <button
                       onClick={() => setOutfitTryOn(m.outfitCombo!)}
-                      className={`self-start rounded-full px-3.5 py-2 text-xs font-semibold transition ${
-                        dark
-                          ? "bg-neutral-800 text-neutral-100 hover:bg-neutral-700"
-                          : "bg-neutral-900 text-white hover:bg-neutral-800"
-                      }`}
+                      className="self-start flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-l from-purple-600 to-fuchsia-500 shadow-md transition hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
                     >
-                      به نظر من این ست بهت میاد، رو خودت امتحانش کن ✨
+                      <Sparkles size={13} />
+                      به نظرم این ست بهت میاد، رو خودت امتحانش کن
                     </button>
                   )}
 
@@ -705,15 +822,15 @@ function ChatPageContent() {
           )}
 
           {!loading && (
-            <div className="flex flex-wrap gap-2 pr-[52px]">
+            <div className="flex flex-wrap gap-2 pr-[48px] sm:pr-[52px]">
               {STARTER_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => handleSend(prompt)}
-                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition hover:-translate-y-0.5 ${
                     dark
-                      ? "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
-                      : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                      ? "border-neutral-700 text-neutral-300 hover:border-purple-800 hover:bg-neutral-800"
+                      : "border-neutral-200 text-neutral-700 hover:border-purple-200 hover:bg-purple-50"
                   }`}
                 >
                   {prompt}

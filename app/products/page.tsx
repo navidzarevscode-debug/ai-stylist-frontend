@@ -26,10 +26,19 @@ type ApiProduct = {
   images: ProductImage[];
 };
 
+const SEASON_LABELS: Record<string, string> = {
+  "تابستان": "لباس‌های تابستانی",
+  "بهار": "لباس‌های بهاره",
+  "پاییز": "لباس‌های پاییزه",
+  "زمستان": "لباس‌های زمستانی",
+};
+
 function ProductsPageContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category") ?? undefined;
   const occasion = searchParams.get("occasion") ?? undefined;
+  const season = searchParams.get("season") ?? undefined;
+  const search = searchParams.get("search") ?? undefined;
   const featured = searchParams.get("featured") === "true";
 
   const [products, setProducts] = useState<ApiProduct[]>([]);
@@ -43,12 +52,22 @@ function ProductsPageContent() {
 
   useEffect(() => {
     setLoading(true);
-    getProducts({ category, occasion })
+    getProducts({ category, occasion, season, search })
       .then((data: ApiProduct[]) =>
         setProducts(featured ? data.filter((p) => p.is_featured) : data)
       )
       .finally(() => setLoading(false));
-  }, [category, occasion, featured]);
+  }, [category, occasion, season, search, featured]);
+
+  const pageTitle = search
+    ? `نتایج جستجو برای «${search}»`
+    : featured
+    ? "تخفیف‌های ویژه"
+    : season
+    ? SEASON_LABELS[season] ?? `محصولات: ${season}`
+    : category || occasion
+    ? `محصولات: ${category || occasion}`
+    : undefined;
 
   return (
     <main className="max-w-7xl mx-auto p-6 sm:p-10 min-h-screen bg-white dark:bg-neutral-950 transition-colors">
@@ -64,9 +83,9 @@ function ProductsPageContent() {
             />
           </div>
         </div>
-      ) : category || occasion || featured ? (
+      ) : pageTitle ? (
         <h1 className="text-2xl sm:text-4xl font-bold mb-8 sm:mb-10 text-neutral-900 dark:text-white">
-          {featured ? "تخفیف‌های ویژه" : `محصولات: ${category || occasion}`}
+          {pageTitle}
         </h1>
       ) : (
         <div className="flex justify-center mb-8 sm:mb-10">
@@ -84,10 +103,10 @@ function ProductsPageContent() {
         <p className="text-neutral-500 dark:text-neutral-400">در حال بارگذاری...</p>
       ) : products.length === 0 ? (
         <p className="text-neutral-500 dark:text-neutral-400">
-          محصولی در این دسته پیدا نشد.
+          {search ? "محصولی با این مشخصات پیدا نشد." : "محصولی در این دسته پیدا نشد."}
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-2 sm:gap-3">
           {products.map((product) => {
             const mainImage =
               product.images?.find((img) => img.is_main) ?? product.images?.[0];

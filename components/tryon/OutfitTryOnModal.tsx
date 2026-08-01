@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { X, Upload, Download } from "lucide-react";
+import { X, Upload, Download, Camera, Image as ImageIcon, Sparkles } from "lucide-react";
 import { tryOnOutfit } from "@/services/tryon";
 
 interface OutfitTryOnModalProps {
@@ -20,14 +20,23 @@ export default function OutfitTryOnModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [showUploadOptions, setShowUploadOptions] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0];
     if (!selected) return;
+
     setFile(selected);
     setPreview(URL.createObjectURL(selected));
     setError(null);
+    setShowUploadOptions(false);
+
+    // اجازه می‌دهیم دوباره همان فایل هم انتخاب شود
+    e.target.value = "";
   }
 
   async function handleSubmit() {
@@ -40,10 +49,51 @@ export default function OutfitTryOnModal({
       setResultUrl(url);
     } catch (err) {
       console.error(err);
-      setError("مشکلی پیش اومد. دوباره امتحان کن.");
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "مشکلی پیش اومد. دوباره امتحان کن.";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    setLoading(false);
+  async function handleDownload() {
+    if (!resultUrl) return;
+    setDownloading(true);
+
+    try {
+      const response = await fetch(resultUrl, { mode: "cors" });
+      if (!response.ok) throw new Error("دانلود تصویر ناموفق بود");
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = "outfit-tryon-result.png";
+      a.style.display = "none";
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) {
+      console.error("Download error:", error);
+      window.open(resultUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  function handleTryAgain() {
+    setResultUrl(null);
+    setFile(null);
+    setPreview(null);
+    setError(null);
+    setShowUploadOptions(false);
   }
 
   return (
@@ -59,8 +109,9 @@ export default function OutfitTryOnModal({
 
         <div className="p-6 flex flex-col gap-4">
           <div>
-            <h2 className="text-base font-bold text-neutral-900 dark:text-white">
-              ست کامل رو رو تنت ببین ✨
+            <h2 className="flex items-center gap-1.5 text-base font-bold text-neutral-900 dark:text-white">
+              ست کامل رو روی تن خودت ببین
+              <Sparkles size={16} className="text-amber-500" />
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
               {titles.join(" + ")}
@@ -69,19 +120,37 @@ export default function OutfitTryOnModal({
 
           {!resultUrl && (
             <>
+              {/* Upload area */}
               <div
-                onClick={() => inputRef.current?.click()}
-                className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 cursor-pointer hover:border-neutral-400 dark:hover:border-neutral-500 transition-colors overflow-hidden ${
-                  preview ? "" : "h-56"
-                }`}
+                onClick={() => {
+                  if (!preview) setShowUploadOptions(true);
+                }}
+                className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 ${
+                  preview
+                    ? ""
+                    : "h-56 cursor-pointer hover:border-neutral-400 dark:hover:border-neutral-500"
+                } transition-colors overflow-hidden`}
               >
                 {preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={preview}
-                    alt="پیش‌نمایش"
-                    className="max-h-[60vh] w-full object-contain"
-                  />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={preview}
+                      alt="پیش‌نمایش"
+                      className="max-h-[60vh] w-full object-contain"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowUploadOptions(true);
+                      }}
+                      className="mb-3 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2 text-xs font-semibold shadow-sm hover:opacity-90 transition"
+                    >
+                      تغییر عکس
+                    </button>
+                  </>
                 ) : (
                   <>
                     <Upload size={22} className="text-neutral-400" />
@@ -92,6 +161,17 @@ export default function OutfitTryOnModal({
                 )}
               </div>
 
+              {/* Camera input */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {/* Gallery input */}
               <input
                 ref={inputRef}
                 type="file"
@@ -99,6 +179,31 @@ export default function OutfitTryOnModal({
                 onChange={handleFileChange}
                 className="hidden"
               />
+
+              {/* Upload options */}
+              {showUploadOptions && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-b from-neutral-900 to-neutral-800 dark:from-white dark:to-neutral-100 py-4 text-white dark:text-neutral-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  >
+                    <Camera size={22} />
+                    <span className="text-xs font-bold">گرفتن عکس</span>
+                    <span className="text-[10px] opacity-70">استفاده از دوربین</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => inputRef.current?.click()}
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-b from-neutral-900 to-neutral-800 dark:from-white dark:to-neutral-100 py-4 text-white dark:text-neutral-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  >
+                    <ImageIcon size={22} />
+                    <span className="text-xs font-bold">انتخاب عکس</span>
+                    <span className="text-[10px] opacity-70">گالری / فایل‌ها</span>
+                  </button>
+                </div>
+              )}
 
               {error && <p className="text-xs text-red-500">{error}</p>}
 
@@ -120,26 +225,23 @@ export default function OutfitTryOnModal({
 
           {resultUrl && (
             <>
-              <div className="rounded-xl overflow-hidden">
+              <div className="rounded-xl overflow-hidden bg-neutral-100 dark:bg-neutral-800">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={resultUrl} alt="نتیجه" className="w-full object-contain" />
+                <img src={resultUrl} alt="نتیجه" className="w-full h-auto object-contain" />
               </div>
 
               <div className="flex gap-2">
-                <a
-                  href={resultUrl}
-                  download
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-700 py-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition"
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full border border-neutral-200 dark:border-neutral-700 py-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition disabled:opacity-50"
                 >
                   <Download size={15} />
-                  دانلود
-                </a>
+                  {downloading ? "در حال آماده‌سازی..." : "دانلود"}
+                </button>
+
                 <button
-                  onClick={() => {
-                    setResultUrl(null);
-                    setFile(null);
-                    setPreview(null);
-                  }}
+                  onClick={handleTryAgain}
                   className="flex-1 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 py-2.5 text-sm font-semibold"
                 >
                   امتحان دوباره

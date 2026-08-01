@@ -1,16 +1,35 @@
 export const API_URL = "https://app-python-xvxv0.apps.frk1.abrhapaas.com";
 
-const isServer = typeof window === "undefined";
-
 function buildInternalUrl(path: string) {
   return `${API_URL}${path}`;
 }
 
-export async function getProducts(filters?: { category?: string; occasion?: string }) {
+export async function getProducts(filters?: {
+  category?: string;
+  occasion?: string;
+  season?: string;
+  search?: string;
+}) {
+  // اگه جستجو داشته باشیم، از اندپوینت اختصاصی جستجو استفاده می‌کنیم
+  if (filters?.search && filters.search.trim().length > 0) {
+    const params = new URLSearchParams();
+    params.set("query", filters.search.trim());
+
+    const url = `${buildInternalUrl("/products/search")}?${params.toString()}`;
+    const response = await fetch(url, { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error("خطا در جستجوی محصولات");
+    }
+
+    return response.json();
+  }
+
   const params = new URLSearchParams();
 
   if (filters?.category) params.set("category", filters.category);
   if (filters?.occasion) params.set("occasion", filters.occasion);
+  if (filters?.season) params.set("season", filters.season);
 
   const query = params.toString();
   const url = query ? `${buildInternalUrl("/products/")}?${query}` : buildInternalUrl("/products/");

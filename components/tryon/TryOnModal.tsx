@@ -213,33 +213,21 @@ export default function TryOnModal({
                   <button
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
-                    className="flex flex-col items-center justify-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-700 py-4 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-b from-neutral-900 to-neutral-800 dark:from-white dark:to-neutral-100 py-4 text-white dark:text-neutral-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
                   >
-                    <Camera size={24} />
-
-                    <span className="text-xs font-semibold">
-                      گرفتن عکس
-                    </span>
-
-                    <span className="text-[10px] text-neutral-400">
-                      استفاده از دوربین
-                    </span>
+                    <Camera size={22} />
+                    <span className="text-xs font-bold">گرفتن عکس</span>
+                    <span className="text-[10px] opacity-70">استفاده از دوربین</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
-                    className="flex flex-col items-center justify-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-700 py-4 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-gradient-to-b from-neutral-900 to-neutral-800 dark:from-white dark:to-neutral-100 py-4 text-white dark:text-neutral-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
                   >
-                    <ImageIcon size={24} />
-
-                    <span className="text-xs font-semibold">
-                      انتخاب عکس
-                    </span>
-
-                    <span className="text-[10px] text-neutral-400">
-                      گالری / فایل‌ها
-                    </span>
+                    <ImageIcon size={22} />
+                    <span className="text-xs font-bold">انتخاب عکس</span>
+                    <span className="text-[10px] opacity-70">گالری / فایل‌ها</span>
                   </button>
                 </div>
               )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 
 export type StyleQuizAnswers = {
   gender?: "male" | "female" | "unspecified";
@@ -188,6 +189,27 @@ export default function StyleQuizModal({
     }, 220);
   }
 
+  function handleBack() {
+    // اگه توی فیلد جزئیات مناسبت هستیم، برگشت یعنی برگرد به گزینه‌های همین سوال
+    if (showOccasionInput) {
+      setShowOccasionInput(false);
+      setOccasionText("");
+      return;
+    }
+
+    if (idx === 0) return;
+
+    setTransitioning(true);
+    setTimeout(() => {
+      setIdx((i) => i - 1);
+      setShowOccasionInput(false);
+      setOccasionText("");
+      setTransitioning(false);
+    }, 220);
+  }
+
+  const canGoBack = idx > 0 || showOccasionInput;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md px-4">
       <div className="relative w-full max-w-sm rounded-3xl bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-2xl border border-white/20 dark:border-neutral-700/50 p-6">
@@ -198,6 +220,17 @@ export default function StyleQuizModal({
         >
           ✕
         </button>
+
+        {canGoBack && (
+          <button
+            onClick={handleBack}
+            aria-label="سوال قبلی"
+            className="absolute right-3 top-3 flex h-8 items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-3 text-xs font-semibold text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          >
+            <ChevronRight size={14} />
+            قبلی
+          </button>
+        )}
 
         {/* progress dots */}
         <div className="flex justify-center gap-1.5 mb-6">
