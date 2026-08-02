@@ -30,7 +30,7 @@ export default function StyleMatchTrigger({ productId }: StyleMatchTriggerProps)
             ست کردن هوشمند با این لباس
           </p>
           <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
-            بر اساس سلیقه و مشخصات تو، بهترین ست رو پیشنهاد می‌دیم
+            بر اساس سلیقه و مشخصات تو، بهترین ست رو پیشنهاد می‌دهیم
           </p>
         </div>
       </div>
